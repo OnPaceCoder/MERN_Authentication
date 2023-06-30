@@ -3,9 +3,8 @@ import asyncHandler from 'express-async-handler'
 // route   POST  /api/users/auth
 // @access Public
 const authUser = asyncHandler(async (req, res) => {
-    res.status(401);
-    throw new Error("Some thing went wrong")
-    // res.status(200).json({ message: "Auth User 3" })
+
+    res.status(200).json({ message: "Auth User 3" })
 })
 
 

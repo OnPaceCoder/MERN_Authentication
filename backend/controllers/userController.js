@@ -1,13 +1,9 @@
 import asyncHandler from 'express-async-handler'
 import User from '../models/userModel.js'
 import generateToken from '../utils/generateToken.js'
-
 import nodemailer from 'nodemailer'
 import Mailgen from 'mailgen'
-
-// import sendMail from '../utils/generateMail.js'
-
-
+import jwt from "jsonwebtoken";
 
 
 // @desc   Auth  user/settoken
@@ -162,12 +158,72 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 })
 
+//@desc Forgot user password
+//router POST /api/users/forgotPassword
+//@access Public
+const forgotPasswordLink = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const userExist = await User.findOne({ email }).select('-password')
 
+    if (!userExist) {
+        res.status(400)
+        throw new Error("User with this email does not exists")
+    }
+
+    const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+        expiresIn: '5m'
+    })
+
+    const user = await User.findById(userExist._id)
+    user.forgotPasswordToken = token;
+    const updatedUser = await user.save()
+
+    let link = `http://localhost:8000/api/users/forgotPassword/${token}`
+
+    res.status(200).json({ id: updatedUser._id, name: updatedUser.name, email: updatedUser.email, link, token })
+
+})
+
+
+const forgotPassword = asyncHandler(async (req, res) => {
+    const token = req.params.token
+    const { password, confirmPassword } = req.body;
+    if (password !== confirmPassword) throw new Error("Password and Confirm Password does not match")
+
+    if (token) {
+        let email;
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            email = decoded.email
+        } catch (error) {
+            res.status(401);
+            throw new Error("Link expired or invalid token")
+        }
+        try {
+            const user = await User.findOne({ email })
+            user.password = password;
+            const updatedUser = await user.save()
+            res.status(200).json({ email: updatedUser.email, name: updatedUser.name })
+        } catch (error) {
+            res.status(401);
+            throw new Error("Something went wrong while fetching data")
+        }
+
+    } else {
+        res.status(401);
+        throw new Error("Not authorized, no token");
+    }
+
+
+
+})
 
 export {
     authUser,
     registerUser,
     logout,
     getUserProfile,
-    updateUserProfile
+    updateUserProfile,
+    forgotPassword,
+    forgotPasswordLink
 }

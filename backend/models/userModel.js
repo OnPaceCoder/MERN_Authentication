@@ -17,6 +17,9 @@ const userSchema = mongoose.Schema({
         type: String,
         required: true,
 
+    },
+    forgotPasswordToken: {
+        type: String
     }
 },
     {
@@ -35,6 +38,8 @@ userSchema.pre("save", async function (next) {
 
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
+
+
     return bcrypt.compareSync(enteredPassword, this.password)
 }
 

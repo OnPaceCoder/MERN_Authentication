@@ -158,7 +158,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 })
 
-//@desc Forgot user password
+//@desc Forgot user password link generator 
 //router POST /api/users/forgotPassword
 //@access Public
 const forgotPasswordLink = asyncHandler(async (req, res) => {
@@ -184,7 +184,9 @@ const forgotPasswordLink = asyncHandler(async (req, res) => {
 
 })
 
-
+//@desc forgot password 
+//router POST /api/users/forgotPassword/:token
+//@access Public
 const forgotPassword = asyncHandler(async (req, res) => {
     const token = req.params.token
     const { password, confirmPassword } = req.body;

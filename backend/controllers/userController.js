@@ -1,9 +1,19 @@
 import asyncHandler from 'express-async-handler'
 import User from '../models/userModel.js'
 import generateToken from '../utils/generateToken.js'
+
+import nodemailer from 'nodemailer'
+import Mailgen from 'mailgen'
+
+// import sendMail from '../utils/generateMail.js'
+
+
+
+
 // @desc   Auth  user/settoken
 // route   POST  /api/users/auth
 // @access Public
+
 const authUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -25,30 +35,70 @@ const authUser = asyncHandler(async (req, res) => {
 })
 
 
-
 //@desc Register a new user
-//route POST /api/users/auth
+//route POST /api/users
 // access Public
 
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
+
     const userExist = await User.findOne({ email })
 
     if (userExist) {
         res.status(400)
         throw new Error("User already exists")
     }
+    const config = {
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    }
+    const transporter = nodemailer.createTransport(config)
+    const MailGenerator = new Mailgen({
+        theme: "default",
+        product: {
+            name: "Priyank Inc.",
+            link: 'https://mailgen.js/',
+            copyright: 'Copyright © 2023 Priyank Inc. All rights reserved.',
 
+        }
+    })
+    const response = {
+        body: {
+            name: name,
+            intro: "You are registered successfully",
 
+            outro: "Looking forward for your feedback"
+        }
+    }
+    const mail = MailGenerator.generate(response)
+    const message = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Registration Succesfull",
+        html: mail
+    }
     const user = await User.create({ name, email, password })
 
     if (user) {
         generateToken(res, user._id)
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email
-        })
+
+        try {
+            const response = await transporter.sendMail(message)
+            res.status(201).json({
+                id: user._id,
+                name: user.name,
+                email: user.email
+            })
+        } catch (error) {
+            res.status(400)
+            throw new Error(error)
+        }
+
+
+
     } else {
         res.status(400);
         throw new Error("Invalid user data")
